@@ -27,7 +27,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-
+#include "sds.h"
 #ifndef __REDIS_CONNECTION_H
 #define __REDIS_CONNECTION_H
 
@@ -81,6 +81,7 @@ struct connection {
     ConnectionCallbackFunc write_handler;
     ConnectionCallbackFunc read_handler;
     int fd;
+    int cqe_res;
 };
 
 /* The connection module does not deal with listening and accepting sockets,

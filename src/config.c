@@ -32,6 +32,7 @@
 #include "cluster.h"
 
 #include <fcntl.h>
+#include <stdio.h>
 #include <sys/stat.h>
 
 /*-----------------------------------------------------------------------------
@@ -308,6 +309,12 @@ void resetServerSaveParams(void) {
     zfree(server.saveparams);
     server.saveparams = NULL;
     server.saveparamslen = 0;
+}
+
+#define OPEN_SQPOLL 1
+
+void setServerSqpoll() {
+    server.sqpoll = OPEN_SQPOLL;
 }
 
 void queueLoadModule(sds path, sds *argv, int argc) {
@@ -607,6 +614,7 @@ void loadServerConfigFromString(char *config) {
                 }
                 queueSentinelConfig(argv+1,argc-1,linenum,lines[i]);
             }
+            setServerSqpoll();
         } else {
             err = "Bad directive or wrong number of arguments"; goto loaderr;
         }

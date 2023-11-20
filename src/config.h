@@ -78,6 +78,10 @@
 #define HAVE_MSG_NOSIGNAL 1
 #endif
 
+#ifdef __linux__
+#define HAVE_IO_URING 1
+#endif
+
 /* Test for polling API */
 #ifdef __linux__
 #define HAVE_EPOLL 1
