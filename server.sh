@@ -1,1 +1,0 @@
-./src/redis-server config/non-persistent.conf
