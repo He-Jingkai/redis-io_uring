@@ -125,10 +125,8 @@ client *createClient(connection *conn) {
      * in the context of a client. When commands are executed in other
      * contexts (for instance a Lua script) we need a non connected client. */
     if (conn) {
-#if !defined(HAVE_IO_URING)
         connNonBlock(conn);
         connEnableTcpNoDelay(conn);
-#endif
         if (server.tcpkeepalive)
             connKeepAlive(conn,server.tcpkeepalive);
 #if defined(HAVE_IO_URING)
@@ -2164,7 +2162,8 @@ int processMultibulkBuffer(client *c) {
         if (sdslen(c->querybuf)-c->qb_pos < (size_t)(c->bulklen+2)) {
             /* Not enough data (+2 == trailing \r\n) */
             break;
-        } else {
+        } 
+        else {
             /* Optimization: if the buffer contains JUST our bulk element
              * instead of creating a new object by *copying* the sds we
              * just use the current sds string. */
@@ -2331,7 +2330,10 @@ void processInputBuffer(client *c) {
                 break;
             }
         } else if (c->reqtype == PROTO_REQ_MULTIBULK) {
-            if (processMultibulkBuffer(c) != C_OK) break;
+            if (processMultibulkBuffer(c) != C_OK) {
+                c->needResubmit = 1;
+                break;
+            }
         } else {
             serverPanic("Unknown request type");
         }
@@ -2452,7 +2454,7 @@ void readQueryFromClient(connection *conn) {
 void readDoneFromClient(connection *conn) {
     client *c = connGetPrivateData(conn);
     int nread = conn->cqe_res;
-    if (nread < 0) {
+    if (nread == -1) {
         if (connGetState(conn) == CONN_STATE_CONNECTED) {
             return;
         } else {
@@ -2471,10 +2473,11 @@ void readDoneFromClient(connection *conn) {
         c->pending_querybuf = sdscatlen(c->pending_querybuf,
                                         c->querybuf+c->qblen,nread);
     }
+
     sdsIncrLen(c->querybuf,nread);
     c->lastinteraction = server.unixtime;
     if (c->flags & CLIENT_MASTER) c->read_reploff += nread;
-    server.stat_net_input_bytes += nread;
+    atomicIncr(server.stat_net_input_bytes, nread);
     if (sdslen(c->querybuf) > server.client_max_querybuf_len) {
         sds ci = catClientInfoString(sdsempty(),c), bytes = sdsempty();
         bytes = sdscatrepr(bytes,c->querybuf,64);
@@ -2484,9 +2487,13 @@ void readDoneFromClient(connection *conn) {
         freeClientAsync(c);
         return;
     }
+
     /* There is more data in the client input buffer, continue parsing it
      * in case to check if there is a full command to execute. */
+    c->needResubmit = 0;
     processInputBuffer(c);
+    if(c->needResubmit)
+        readQueryFromClient(conn);
     c->submitted_query--;
 }
 #endif

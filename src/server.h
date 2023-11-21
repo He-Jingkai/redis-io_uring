@@ -153,7 +153,7 @@ typedef long long ustime_t; /* microsecond time type. */
 #define PROTO_IOBUF_LEN         (1024*1024*16)  /* Generic I/O buffer size */
 #define PROTO_REPLY_CHUNK_BYTES (16*1024) /* 16k output buffer */
 #define PROTO_INLINE_MAX_SIZE   (1024*64) /* Max size of inline reads */
-#define PROTO_MBULK_BIG_ARG     (1024*32)
+#define PROTO_MBULK_BIG_ARG     (1024*1024)
 #define LONG_STR_SIZE      21          /* Bytes needed for long -> str + '\0' */
 #define REDIS_AUTOSYNC_BYTES (1024*1024*32) /* fdatasync every 32MB */
 
@@ -959,6 +959,7 @@ typedef struct client {
     int      client_cron_last_memory_type;
     /* Response buffer */
     int bufpos;
+    int needResubmit;
     char buf[PROTO_REPLY_CHUNK_BYTES];
 } client;
 
